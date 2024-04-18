@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        canvas {
+            background-color: #000000;
+        }
+    </style>
+</head>
+<body>
+<canvas id="terminal"></canvas>
+<script>
+    let history = '';
+    let prefix = '> ';
+    let text = prefix;
+    let commands = [];
+    let cmdpos = 0;
+
+    function write_line(str) {
+        history += (str + '\n');
+    }
+
+    function write(str) {
+        history += str;
+    }
+
+    const programs = {
+        'howdy': function (args) {
+            write_line('hi there!');
+        },
+        'echo': function (args) {
+            write_line(args[0]);
+        }
+    }
+
+    const font_size = 14;
+    const line_height = font_size + 5;
+    let terminal = document.getElementById('terminal');
+    terminal.width = document.body.offsetWidth;
+    terminal.height = '300';
+    ctx = terminal.getContext('2d');
+    ctx.font = font_size + "px Courier New";
+    ctx.font
+    ctx.fillStyle = '#FFFFFF';
+
+    let show_cursor = true;
+    let blink_interval = setInterval(() => {
+        show_cursor = !show_cursor;
+    }, 600);
+
+    function parse_command(cmd) {
+        let parts = []
+        let buf = '';
+        let quote = null;
+        let quoted = false;
+        for (let i = 0; i < cmd.length; i++) {
+            switch (cmd[i]) {
+                case "'":
+                    if (quoted) {
+                        if (quote === "'") {
+                            quoted = false;
+                            continue;
+                        }
+                    } else {
+                        quoted = true;
+                        quote = "'";
+                        continue;
+                    }
+                    break;
+                case '"':
+                    if (quoted) {
+                        if (quote === '"') {
+                            quoted = false;
+                            continue;
+                        }
+                    } else {
+                        quoted = true;
+                        quote = '"';
+                        continue;
+                    }
+                    break;
+            }
+
+            if (quoted || cmd[i] !== ' ') {
+                buf += cmd[i];
+            } else {
+                parts.push(buf);
+                buf = '';
+            }
+        }
+
+        if (quoted) {
+            return [];
+        }
+
+        if (buf.length > 0) {
+            parts.push(buf)
+        }
+        return parts;
+    }
+
+    window.onkeydown = (e) => {
+        clearInterval(blink_interval);
+        show_cursor = true;
+        switch (e.key) {
+            case 'Enter':
+                let command = text.substring(2);
+                commands.push(command);
+                let command_parts = parse_command(command);
+                history += (text + '\n');
+                text = prefix;
+                switch (command_parts[0]) {
+                    case 'clear':
+                        history = '';
+                        break;
+                    default:
+                        if (command_parts[0] in programs) {
+                            programs[command_parts[0]]((command_parts.slice(1)));
+                        } else {
+                            history += 'command not found: ' + command_parts[0] + '\n';
+                        }
+                        break;
+                }
+                break;
+            case 'Backspace':
+                text = text.substring(0, text.length - 1);
+                if (text.length < 2) {
+                    text = prefix;
+                }
+                break;
+            case 'Shift':
+                break;
+            case 'ArrowUp':
+                cmdpos++;
+                if (cmdpos > commands.length) {
+                    cmdpos = commands.length;
+                }
+                text = prefix + commands[commands.length - cmdpos];
+                break;
+            case 'ArrowDown':
+                cmdpos--;
+                if (cmdpos < 1) {
+                    cmdpos = 0;
+                    text = prefix;
+                } else {
+                    text = prefix + commands[commands.length - cmdpos];
+                }
+                break;
+            default:
+                text += e.key;
+                break;
+        }
+        blink_interval = setInterval(() => {
+            show_cursor = !show_cursor;
+        }, 600);
+    };
+
+    setInterval(() => {
+        ctx.clearRect(0, 0, terminal.width, terminal.height);
+        let cursor = show_cursor ? '_' : '';
+        let lines = history.split('\n');
+        let line_count = 0;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].length > 0) {
+                line_count += 1;
+                ctx.fillText(lines[i], 5, line_height * (i + 1));
+            }
+        }
+        ctx.fillText(text + cursor, 5, line_height * (line_count + 1));
+    }, 10);
+
+</script>
+</body>
+</html>
