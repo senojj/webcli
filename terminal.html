@@ -54,31 +54,46 @@
     }
 
     function resolve_path(current_path, path) {
-        let keys = path.split('/');
         if (current_path === path) {
-            return keys;
+            return path;
         }
-        let resolved = resolve_path('/', current_path);
+        let keys = path.split('/');
+        let path_parts = current_path.split('/');
         for (let i = 0; i < keys.length; i++) {
             switch (keys[i]) {
                 case '.':
                     break;
                 case '..':
-                    if (resolved.length > 0) {
-                        resolved.pop();
+                    if (path_parts.length > 0) {
+                        path_parts.pop();
                     }
                     break;
                 case '':
                     if (i === 0) {
-                        resolved = [''];
+                        path_parts = [''];
                     }
                     break;
                 default:
-                    resolved.push(keys[i]);
+                    path_parts.push(keys[i]);
                     break;
             }
         }
-        return resolved
+        return path_parts.join('/');
+    }
+
+    function find_node(path) {
+        let resolved_path = resolve_path(dir, path);
+        let path_parts = resolved_path.split('/');
+        let node = fs;
+        for (let i = 0; i < path_parts.length; i++) {
+            if (node === undefined) {
+                break;
+            }
+            if (path_parts[i] !== '') {
+                node = node.nodes[path_parts[i]];
+            }
+        }
+        return node;
     }
 
     const programs = {
@@ -100,16 +115,8 @@
         },
         'ls': function (args) {
             let path = args[0] || dir;
-            let path_parts = resolve_path(dir, path);
-            let node = fs;
-            for (let i = 0; i < path_parts.length; i++) {
-                if (node === undefined) {
-                    break;
-                }
-                if (path_parts[i] !== '') {
-                    node = node.nodes[path_parts[i]];
-                }
-            }
+            path = resolve_path(dir, path);
+            let node = find_node(path);
             if (node === undefined || node.type !== 'd') {
                 write_line('not a directory: ' + path);
                 return;
@@ -121,42 +128,45 @@
         },
         'cd': function (args) {
             let path = args[0] || dir;
-            let path_parts = resolve_path(dir, path);
-            let node = fs;
-            for (let i = 0; i < path_parts.length; i++) {
-                if (node === undefined) {
-                    break;
-                }
-                if (path_parts[i] !== '') {
-                    node = node.nodes[path_parts[i]];
-                }
-            }
+            path = resolve_path(dir, path);
+            let node = find_node(path);
             if (node === undefined || node.type !== 'd') {
                 write_line('not a directory: ' + path);
                 return;
             }
-            dir = path_parts.join('/');
+            dir = path;
         },
         'pwd': function (args) {
             write_line(dir)
         },
         'cat': function (args) {
             let path = args[0] || dir;
-            let path_parts = resolve_path(dir, path);
-            let node = fs;
-            for (let i = 0; i < path_parts.length; i++) {
-                if (node === undefined) {
-                    break;
-                }
-                if (path_parts[i] !== '') {
-                    node = node.nodes[path_parts[i]];
-                }
-            }
+            path = resolve_path(dir, path);
+            let node = find_node(path);
             if (node === undefined || node.type !== 'f') {
                 write_line('not a file: ' + path);
                 return;
             }
             write_line(node.content);
+        },
+        'mkdir': function (args) {
+            let path = args[0];
+            if (path === undefined) {
+                write_line('missing argument: path');
+                return;
+            }
+            path = resolve_path(dir, path);
+            let parent = path.substring(0, path.lastIndexOf('/'));
+            let child = path.substring(path.lastIndexOf('/') + 1);
+            let node = find_node(parent);
+            if (node === undefined || node.type !== 'd') {
+                write_line('not a directory: ' + path);
+                return;
+            }
+            node.nodes[child] = {
+                type: 'd',
+                nodes: {}
+            };
         }
     }
 
