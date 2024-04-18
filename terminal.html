@@ -12,20 +12,23 @@
 <body>
 <canvas id="terminal"></canvas>
 <script>
-    let nav = {
-        'home': {
-            type: 'd',
-            nodes: {
-                'about': {
-                    type: 'f',
-                    content: 'this is about me'
-                },
-                'fiends': {
-                    type: 'd',
-                    nodes: {
-                        'Rachael': {
-                            type: 'f',
-                            content: 'this is about Rachael'
+    let fs = {
+        type: 'd',
+        nodes: {
+            'home': {
+                type: 'd',
+                nodes: {
+                    'about': {
+                        type: 'f',
+                        content: 'this is about me'
+                    },
+                    'friends': {
+                        type: 'd',
+                        nodes: {
+                            'Rachael': {
+                                type: 'f',
+                                content: 'this is about Rachael'
+                            }
                         }
                     }
                 }
@@ -34,7 +37,7 @@
     };
 
     let history = '';
-    let dir = 'home';
+    let dir = '/home';
     let prefix = function () {
         return dir + '> ';
     };
@@ -48,6 +51,34 @@
 
     function write(str) {
         history += str;
+    }
+
+    function resolve_path(current_path, path) {
+        let keys = path.split('/');
+        if (current_path === path) {
+            return keys;
+        }
+        let resolved = resolve_path('/', current_path);
+        for (let i = 0; i < keys.length; i++) {
+            switch (keys[i]) {
+                case '.':
+                    break;
+                case '..':
+                    if (resolved.length > 0) {
+                        resolved.pop();
+                    }
+                    break;
+                case '':
+                    if (i === 0) {
+                        resolved = [''];
+                    }
+                    break;
+                default:
+                    resolved.push(keys[i]);
+                    break;
+            }
+        }
+        return resolved
     }
 
     const programs = {
@@ -68,10 +99,20 @@
             write_line(buf);
         },
         'ls': function (args) {
-            let node_name = args[0] || dir;
-            let node = nav[node_name];
+            let path = args[0] || dir;
+            let path_parts = resolve_path(dir, path);
+            let node = fs;
+            for (let i = 0; i < path_parts.length; i++) {
+                if (node === undefined) {
+                    write_line('not a file or directory: ' + path);
+                    return;
+                }
+                if (path_parts[i] !== '') {
+                    node = node.nodes[path_parts[i]];
+                }
+            }
             if (node.type !== 'd') {
-                write_line('not a directory: ' + node_name);
+                write_line('not a directory: ' + path);
                 return;
             }
             let keys = Object.keys(node.nodes);
@@ -97,6 +138,9 @@
     }, 600);
 
     function parse_command(cmd) {
+        if (cmd.length === 0) {
+            return [''];
+        }
         let parts = []
         let buf = '';
         let quote = null;
@@ -165,7 +209,7 @@
                 break;
             case 'Backspace':
                 text = text.substring(0, text.length - 1);
-                if (text.length < 2) {
+                if (text.length < prefix().length) {
                     text = prefix();
                 }
                 break;
