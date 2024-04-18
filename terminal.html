@@ -294,6 +294,7 @@
                     cmdpos = commands.length;
                 }
                 text = prefix() + (commands[commands.length - cmdpos] || '');
+                cursor_pos = text.length;
                 break;
             case 'ArrowDown':
                 cmdpos--;
@@ -303,6 +304,7 @@
                 } else {
                     text = prefix() + commands[commands.length - cmdpos];
                 }
+                cursor_pos = text.length;
                 break;
             case 'ArrowLeft':
                 if (!e.metaKey) {
@@ -328,8 +330,11 @@
             case 'Meta':
                 break;
             default:
-                text += e.key;
+                text = text.substring(0, cursor_pos) + e.key + text.substring(cursor_pos);
                 cursor_pos++;
+                if (cursor_pos > text.length) {
+                    cursor_pos = text.length;
+                }
                 break;
         }
         blink_interval = setInterval(() => {
