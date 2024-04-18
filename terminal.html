@@ -258,7 +258,7 @@
         return parts;
     }
 
-    window.onkeydown = (e) => {
+    document.addEventListener('keydown', (e) => {
         clearInterval(blink_interval);
         show_cursor = true;
         switch (e.key) {
@@ -287,7 +287,7 @@
                 if (cmdpos > commands.length) {
                     cmdpos = commands.length;
                 }
-                text = prefix() + commands[commands.length - cmdpos];
+                text = prefix() + (commands[commands.length - cmdpos] || '');
                 break;
             case 'ArrowDown':
                 cmdpos--;
@@ -298,6 +298,11 @@
                     text = prefix() + commands[commands.length - cmdpos];
                 }
                 break;
+            case 'ArrowLeft':
+            case 'ArrowRight':
+            case 'Control':
+            case 'Meta':
+                break;
             default:
                 text += e.key;
                 break;
@@ -305,9 +310,9 @@
         blink_interval = setInterval(() => {
             show_cursor = !show_cursor;
         }, 600);
-    };
+    });
 
-    setInterval(() => {
+    let main_loop = setInterval(() => {
         ctx.clearRect(0, 0, terminal.width, terminal.height);
         let cursor = show_cursor ? '_' : '';
         let lines = history.split('\n');
@@ -315,10 +320,10 @@
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].length > 0) {
                 line_count += 1;
-                ctx.fillText(lines[i], 5, line_height * (i + 1));
+                ctx.fillText(lines[i], 10, line_height * (i + 1));
             }
         }
-        ctx.fillText(text + cursor, 5, line_height * (line_count + 1));
+        ctx.fillText(text + cursor, 10, line_height * (line_count + 1));
     }, 10);
 
 </script>
