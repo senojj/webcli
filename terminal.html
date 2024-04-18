@@ -27,6 +27,9 @@
     }
 
     const programs = {
+        'clear': function (args) {
+            history = '';
+        },
         'howdy': function (args) {
             write_line('hi there!');
         },
@@ -118,17 +121,10 @@
                 let command_parts = parse_command(command);
                 history += (text + '\n');
                 text = prefix;
-                switch (command_parts[0]) {
-                    case 'clear':
-                        history = '';
-                        break;
-                    default:
-                        if (command_parts[0] in programs) {
-                            programs[command_parts[0]]((command_parts.slice(1)));
-                        } else {
-                            history += 'command not found: ' + command_parts[0] + '\n';
-                        }
-                        break;
+                if (command_parts[0] in programs) {
+                    programs[command_parts[0]]((command_parts.slice(1)));
+                } else {
+                    history += 'command not found: ' + command_parts[0] + '\n';
                 }
                 break;
             case 'Backspace':
