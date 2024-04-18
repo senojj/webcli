@@ -31,7 +31,14 @@
             write_line('hi there!');
         },
         'echo': function (args) {
-            write_line(args[0]);
+            let buf = '';
+            for (let i = 0; i < args.length; i++) {
+                if (i > 0) {
+                    buf += ' ';
+                }
+                buf += args[i]
+            }
+            write_line(buf);
         }
     }
 
