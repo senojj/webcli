@@ -99,6 +99,7 @@
     const programs = {
         'clear': function (args) {
             history = '';
+            cursor_pos = prefix().length;
         },
         'howdy': function (args) {
             write_line('hi there!');
@@ -261,9 +262,10 @@
     document.addEventListener('keydown', (e) => {
         clearInterval(blink_interval);
         show_cursor = true;
+        let prefix_length = prefix().length;
         switch (e.key) {
             case 'Enter':
-                let command = text.substring(prefix().length);
+                let command = text.substring(prefix_length);
                 commands.push(command);
                 let command_parts = parse_command(command);
                 history += (text + '\n');
@@ -275,8 +277,12 @@
                 text = prefix();
                 break;
             case 'Backspace':
-                text = text.substring(0, text.length - 1);
-                if (text.length < prefix().length) {
+                cursor_pos--;
+                if (cursor_pos < prefix_length) {
+                    cursor_pos = prefix_length;
+                }
+                text = text.substring(0, cursor_pos) + text.substring(cursor_pos + 1);
+                if (text.length < prefix_length) {
                     text = prefix();
                 }
                 break;
@@ -299,12 +305,23 @@
                 }
                 break;
             case 'ArrowLeft':
+                cursor_pos--;
+                if (cursor_pos < prefix_length) {
+                    cursor_pos = prefix_length;
+                }
+                break;
             case 'ArrowRight':
+                cursor_pos++;
+                if (cursor_pos > text.length) {
+                    cursor_pos = text.length;
+                }
+                break;
             case 'Control':
             case 'Meta':
                 break;
             default:
                 text += e.key;
+                cursor_pos++;
                 break;
         }
         blink_interval = setInterval(() => {
@@ -312,9 +329,11 @@
         }, 600);
     });
 
+    let cursor_pos = prefix().length;
+
     let main_loop = setInterval(() => {
         ctx.clearRect(0, 0, terminal.width, terminal.height);
-        let cursor = show_cursor ? '_' : '';
+        let cursor = show_cursor ? '_' : ' ';
         let lines = history.split('\n');
         let line_count = 0;
         for (let i = 0; i < lines.length; i++) {
@@ -323,7 +342,7 @@
                 ctx.fillText(lines[i], 10, line_height * (i + 1));
             }
         }
-        ctx.fillText(text + cursor, 10, line_height * (line_count + 1));
+        ctx.fillText(text.substring(0, cursor_pos) + cursor + text.substring(cursor_pos + 1), 10, line_height * (line_count + 1));
     }, 10);
 
 </script>
