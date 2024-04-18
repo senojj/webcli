@@ -305,14 +305,22 @@
                 }
                 break;
             case 'ArrowLeft':
-                cursor_pos--;
-                if (cursor_pos < prefix_length) {
+                if (!e.metaKey) {
+                    cursor_pos--;
+                    if (cursor_pos < prefix_length) {
+                        cursor_pos = prefix_length;
+                    }
+                } else {
                     cursor_pos = prefix_length;
                 }
                 break;
             case 'ArrowRight':
-                cursor_pos++;
-                if (cursor_pos > text.length) {
+                if (!e.metaKey) {
+                    cursor_pos++;
+                    if (cursor_pos > text.length) {
+                        cursor_pos = text.length;
+                    }
+                } else {
                     cursor_pos = text.length;
                 }
                 break;
