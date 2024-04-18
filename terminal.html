@@ -12,9 +12,33 @@
 <body>
 <canvas id="terminal"></canvas>
 <script>
+    let nav = {
+        'home': {
+            type: 'd',
+            nodes: {
+                'about': {
+                    type: 'f',
+                    content: 'this is about me'
+                },
+                'fiends': {
+                    type: 'd',
+                    nodes: {
+                        'Rachael': {
+                            type: 'f',
+                            content: 'this is about Rachael'
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     let history = '';
-    let prefix = '> ';
-    let text = prefix;
+    let dir = 'home';
+    let prefix = function () {
+        return dir + '> ';
+    };
+    let text = prefix();
     let commands = [];
     let cmdpos = 0;
 
@@ -42,6 +66,18 @@
                 buf += args[i]
             }
             write_line(buf);
+        },
+        'ls': function (args) {
+            let node_name = args[0] || dir;
+            let node = nav[node_name];
+            if (node.type !== 'd') {
+                write_line('not a directory: ' + node_name);
+                return;
+            }
+            let keys = Object.keys(node.nodes);
+            for (let i = 0; i < keys.length; i++) {
+                write_line(keys[i]);
+            }
         }
     }
 
@@ -116,11 +152,11 @@
         show_cursor = true;
         switch (e.key) {
             case 'Enter':
-                let command = text.substring(2);
+                let command = text.substring(prefix().length);
                 commands.push(command);
                 let command_parts = parse_command(command);
                 history += (text + '\n');
-                text = prefix;
+                text = prefix();
                 if (command_parts[0] in programs) {
                     programs[command_parts[0]]((command_parts.slice(1)));
                 } else {
@@ -130,7 +166,7 @@
             case 'Backspace':
                 text = text.substring(0, text.length - 1);
                 if (text.length < 2) {
-                    text = prefix;
+                    text = prefix();
                 }
                 break;
             case 'Shift':
@@ -140,15 +176,15 @@
                 if (cmdpos > commands.length) {
                     cmdpos = commands.length;
                 }
-                text = prefix + commands[commands.length - cmdpos];
+                text = prefix() + commands[commands.length - cmdpos];
                 break;
             case 'ArrowDown':
                 cmdpos--;
                 if (cmdpos < 1) {
                     cmdpos = 0;
-                    text = prefix;
+                    text = prefix();
                 } else {
-                    text = prefix + commands[commands.length - cmdpos];
+                    text = prefix() + commands[commands.length - cmdpos];
                 }
                 break;
             default:
