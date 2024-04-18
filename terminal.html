@@ -104,14 +104,13 @@
             let node = fs;
             for (let i = 0; i < path_parts.length; i++) {
                 if (node === undefined) {
-                    write_line('not a file or directory: ' + path);
-                    return;
+                    break;
                 }
                 if (path_parts[i] !== '') {
                     node = node.nodes[path_parts[i]];
                 }
             }
-            if (node.type !== 'd') {
+            if (node === undefined || node.type !== 'd') {
                 write_line('not a directory: ' + path);
                 return;
             }
@@ -126,14 +125,13 @@
             let node = fs;
             for (let i = 0; i < path_parts.length; i++) {
                 if (node === undefined) {
-                    write_line('not a file or directory: ' + path);
-                    return;
+                    break;
                 }
                 if (path_parts[i] !== '') {
                     node = node.nodes[path_parts[i]];
                 }
             }
-            if (node.type !== 'd') {
+            if (node === undefined || node.type !== 'd') {
                 write_line('not a directory: ' + path);
                 return;
             }
@@ -141,6 +139,24 @@
         },
         'pwd': function (args) {
             write_line(dir)
+        },
+        'cat': function (args) {
+            let path = args[0] || dir;
+            let path_parts = resolve_path(dir, path);
+            let node = fs;
+            for (let i = 0; i < path_parts.length; i++) {
+                if (node === undefined) {
+                    break;
+                }
+                if (path_parts[i] !== '') {
+                    node = node.nodes[path_parts[i]];
+                }
+            }
+            if (node === undefined || node.type !== 'f') {
+                write_line('not a file: ' + path);
+                return;
+            }
+            write_line(node.content);
         }
     }
 
