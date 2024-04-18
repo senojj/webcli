@@ -266,9 +266,12 @@
         switch (e.key) {
             case 'Enter':
                 let command = text.substring(prefix_length);
+                history += (text + '\n');
+                if (command.length === 0) {
+                    break;
+                }
                 commands.push(command);
                 let command_parts = parse_command(command);
-                history += (text + '\n');
                 if (command_parts[0] in programs) {
                     programs[command_parts[0]]((command_parts.slice(1)));
                 } else {
