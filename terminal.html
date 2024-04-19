@@ -12,6 +12,10 @@
 <body>
 <canvas id="terminal"></canvas>
 <script>
+    const FONT_SIZE = 14;
+    const LINE_HEIGHT = FONT_SIZE + 5;
+    const TERMINAL_HEIGHT = 300;
+
     let fs = {
         type: 'd',
         nodes: {
@@ -33,6 +37,22 @@
                     }
                 }
             }
+        }
+    };
+
+    let history = {
+        data: '',
+        write_line: function (str) {
+            this.data += (str + '\n');
+        },
+        write: function (str) {
+            this.data += str;
+        },
+        lines: function () {
+            return this.data.split('\n');
+        },
+        clear: function () {
+            this.data = '';
         }
     };
 
@@ -74,7 +94,6 @@
 
     cursor.blink();
 
-    let history = '';
     let dir = '/home';
     let prefix = function () {
         return (dir.substring(dir.lastIndexOf('/') + 1) || '/') + ' % ';
@@ -82,14 +101,6 @@
     let text = prefix();
     let commands = [];
     let cmdpos = 0;
-
-    function write_line(str) {
-        history += (str + '\n');
-    }
-
-    function write(str) {
-        history += str;
-    }
 
     function resolve_path(current_path, path) {
         if (current_path === path) {
@@ -136,11 +147,11 @@
 
     const programs = {
         'clear': function (args) {
-            history = '';
+            history.clear();
             cursor.pos = prefix().length;
         },
         'howdy': function (args) {
-            write_line('hi there!');
+            history.write_line('hi there!');
         },
         'echo': function (args) {
             let buf = '';
@@ -150,7 +161,7 @@
                 }
                 buf += args[i]
             }
-            write_line(buf);
+            history.write_line(buf);
         },
         'ls': function (args) {
             let list = false;
@@ -185,16 +196,16 @@
             path = resolve_path(dir, path);
             let node = find_node(path);
             if (node === undefined || node.type !== 'd') {
-                write_line('not a directory: ' + path);
+                history.write_line('not a directory: ' + path);
                 return;
             }
             let keys = Object.keys(node.nodes);
             for (let i = 0; i < keys.length; i++) {
                 if (keys[i].substring(0, 1) !== '.' || all) {
                     if (list) {
-                        write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
+                        history.write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
                     } else {
-                        write_line(keys[i]);
+                        history.write_line(keys[i]);
                     }
                 }
             }
@@ -204,28 +215,28 @@
             path = resolve_path(dir, path);
             let node = find_node(path);
             if (node === undefined || node.type !== 'd') {
-                write_line('not a directory: ' + path);
+                history.write_line('not a directory: ' + path);
                 return;
             }
             dir = path || '/';
         },
         'pwd': function (args) {
-            write_line(dir)
+            history.write_line(dir)
         },
         'cat': function (args) {
             let path = args[0] || dir;
             path = resolve_path(dir, path);
             let node = find_node(path);
             if (node === undefined || node.type !== 'f') {
-                write_line('not a file: ' + path);
+                history.write_line('not a file: ' + path);
                 return;
             }
-            write_line(node.content);
+            history.write_line(node.content);
         },
         'mkdir': function (args) {
             let path = args[0];
             if (path === undefined) {
-                write_line('missing argument: path');
+                history.write_line('missing argument: path');
                 return;
             }
             path = resolve_path(dir, path);
@@ -233,7 +244,7 @@
             let child = path.substring(path.lastIndexOf('/') + 1);
             let node = find_node(parent);
             if (node === undefined || node.type !== 'd') {
-                write_line('not a directory: ' + path);
+                history.write_line('not a directory: ' + path);
                 return;
             }
             node.nodes[child] = {
@@ -243,13 +254,11 @@
         }
     }
 
-    const font_size = 14;
-    const line_height = font_size + 5;
     let terminal = document.getElementById('terminal');
     terminal.width = document.body.offsetWidth;
-    terminal.height = '300';
+    terminal.height = TERMINAL_HEIGHT;
     ctx = terminal.getContext('2d');
-    ctx.font = font_size + "px Courier New";
+    ctx.font = FONT_SIZE + "px Courier New";
     ctx.font
     ctx.fillStyle = '#FFFFFF';
 
@@ -332,7 +341,7 @@
         switch (e.key) {
             case 'Enter':
                 let command = text.substring(prefix_length);
-                history += (text + '\n');
+                history.write_line(text);
                 if (command.length === 0) {
                     break;
                 }
@@ -341,7 +350,7 @@
                 if (command_parts[0] in programs) {
                     programs[command_parts[0]]((command_parts.slice(1)));
                 } else {
-                    history += 'command not found: ' + command_parts[0] + '\n';
+                    history.write_line('command not found: ' + command_parts[0]);
                 }
                 text = prefix();
                 break;
@@ -413,15 +422,44 @@
 
     let main_loop = setInterval(() => {
         ctx.clearRect(0, 0, terminal.width, terminal.height);
-        let lines = history.split('\n');
-        let line_count = 0;
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].length > 0) {
-                line_count += 1;
-                ctx.fillText(lines[i], 10, line_height * (i + 1));
+        let row_count = 0;
+        let column_count = 0;
+        let lines = [''];
+        let max_lines = Math.floor(terminal.height / (LINE_HEIGHT + 1));
+        let max_chars = 60;
+        for (let i = 0; i < history.data.length; i++) {
+            if (history.data[i] === '\n' || column_count > max_chars) {
+                lines.push('');
+                row_count++;
+                column_count = 0;
+            }
+            if (history.data[i] === '\n') {
+                continue;
+            }
+            lines[row_count] += history.data[i];
+            column_count++;
+            if (row_count + 1 > max_lines) {
+                lines.shift();
+                row_count--;
             }
         }
-        ctx.fillText(text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1), 10, line_height * (line_count + 1));
+        let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
+        for (let i = 0; i < operation.length; i++) {
+            if (column_count > max_chars) {
+                lines.push('');
+                row_count++;
+                column_count = 0;
+            }
+            lines[row_count] += operation[i];
+            column_count++;
+            if (row_count + 1 > max_lines) {
+                lines.shift();
+                row_count--;
+            }
+        }
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], 10, LINE_HEIGHT * (i + 1));
+        }
     }, 10);
 
 </script>
