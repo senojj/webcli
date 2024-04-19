@@ -70,7 +70,7 @@
             step = step || 1;
             this.pos += step;
         }
-    }
+    };
 
     cursor.blink();
 
@@ -153,7 +153,29 @@
             write_line(buf);
         },
         'ls': function (args) {
-            let path = args[0] || dir;
+            let list = false;
+            let all = false;
+            let path = dir;
+            for (let i = 0; i < args.length; i++) {
+                switch (args[i].substring(0, 1)) {
+                    case '-':
+                        let options = args[i].substring(1);
+                        for (let j = 0; j < options.length; j++) {
+                            switch (options[j]) {
+                                case 'l':
+                                    list = true;
+                                    break;
+                                case 'a':
+                                    all = true;
+                                    break;
+                            }
+                        }
+                        break;
+                    default:
+                        path = args[i];
+                        break;
+                }
+            }
             path = resolve_path(dir, path);
             let node = find_node(path);
             if (node === undefined || node.type !== 'd') {
@@ -162,7 +184,13 @@
             }
             let keys = Object.keys(node.nodes);
             for (let i = 0; i < keys.length; i++) {
-                write_line(keys[i]);
+                if (keys[i].substring(0, 1) !== '.' || all) {
+                    if (list) {
+                        write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
+                    } else {
+                        write_line(keys[i]);
+                    }
+                }
             }
         },
         'cd': function (args) {
