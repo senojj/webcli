@@ -3,12 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+    </style>
     <script src="./terminal.js"></script>
 </head>
 <body>
 <canvas id="terminal"></canvas>
 <script>
-    let terminal = new Terminal();
+    let terminal = new Terminal({
+        width: document.body.offsetWidth,
+        height: document.body.offsetHeight
+    });
     terminal.bind('terminal');
 </script>
 </body>
