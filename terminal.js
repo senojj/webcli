@@ -7,6 +7,7 @@ class Terminal {
         this.font_family = config.font_family || 'Courier New';
         this.font_color = config.font_color || '#FFFFFF';
         this.background_color = config.background_color || '#000000';
+        this.on_exit = config.on_exit || ((e) => {});
     }
 
     resize(width, height) {
@@ -15,6 +16,7 @@ class Terminal {
     }
 
     bind(identifier) {
+        const that = this;
         const line_height = this.font_size + 5;
         const fs = {
             type: 'd',
@@ -251,6 +253,9 @@ class Terminal {
                     type: 'd',
                     nodes: {}
                 };
+            },
+            'exit': function (args) {
+                that.on_exit(canvas);
             }
         }
 

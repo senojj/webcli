@@ -21,14 +21,15 @@
 </head>
 <body>
 <div id="terminal"></div>
-<div id="terminal2"></div>
 <script>
     let terminal = new Terminal({
-        width: 350,
-        height: 250
+        width: window.innerWidth,
+        height: window.innerHeight,
+        on_exit: (e) => {
+            document.getElementById('terminal').remove();
+        }
     });
     terminal.bind('terminal');
-    terminal.bind('terminal2');
 
     window.addEventListener('resize', () => {
         terminal.resize(window.innerWidth, window.innerHeight);
