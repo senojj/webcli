@@ -426,9 +426,8 @@
         let column_count = 0;
         let lines = [''];
         let max_lines = Math.floor(terminal.height / (LINE_HEIGHT + 1));
-        let max_chars = 60;
         for (let i = 0; i < history.data.length; i++) {
-            if (history.data[i] === '\n' || column_count > max_chars) {
+            if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= terminal.width) {
                 lines.push('');
                 row_count++;
                 column_count = 0;
@@ -437,7 +436,6 @@
                 continue;
             }
             lines[row_count] += history.data[i];
-            column_count++;
             if (row_count + 1 > max_lines) {
                 lines.shift();
                 row_count--;
@@ -445,13 +443,12 @@
         }
         let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
         for (let i = 0; i < operation.length; i++) {
-            if (column_count > max_chars) {
+            if (Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= terminal.width) {
                 lines.push('');
                 row_count++;
                 column_count = 0;
             }
             lines[row_count] += operation[i];
-            column_count++;
             if (row_count + 1 > max_lines) {
                 lines.shift();
                 row_count--;
