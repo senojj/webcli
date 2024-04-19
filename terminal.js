@@ -1,8 +1,12 @@
 class Terminal {
-    constructor(width, height, font_size) {
-        this.width = width;
-        this.height = height;
-        this.font_size = font_size;
+    constructor(config) {
+        config = config || {};
+        this.width = config.width || 550;
+        this.height = config.height || 245;
+        this.font_size = config.font_size || 16;
+        this.font_family = config.font_family || 'Courier New';
+        this.font_color = config.font_color || '#FFFFFF';
+        this.background_color = config.background_color || '#000000';
     }
 
     bind(identifier) {
@@ -248,9 +252,10 @@ class Terminal {
         let terminal = document.getElementById(identifier);
         terminal.width = this.width;
         terminal.height = this.height;
+        terminal.style.backgroundColor = this.background_color;
         let ctx = terminal.getContext('2d');
-        ctx.font = this.font_size + "px Courier New";
-        ctx.fillStyle = '#FFFFFF';
+        ctx.font = this.font_size + 'px ' + this.font_family;
+        ctx.fillStyle = this.font_color;
 
         function parse_command(cmd) {
             if (cmd.length === 0) {
