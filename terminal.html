@@ -36,6 +36,44 @@
         }
     };
 
+    let cursor = {
+        char: '_',
+        pos: 0,
+        visible: true,
+        blink: function () {
+            if (this.freeze !== undefined) {
+                this.freeze();
+            }
+            let that = this;
+
+            let mirror = function () {
+                that.visible = !that.visible;
+            };
+            (function(parent) {
+                let blink_interval = setInterval(() => {
+                    mirror();
+                }, 600);
+                parent.freeze = function () {
+                    clearInterval(blink_interval);
+                    this.visible = true;
+                };
+            }(this));
+        },
+        text: function () {
+            return this.visible ? this.char : ' ';
+        },
+        move_left: function (step) {
+            step = step || 1;
+            this.pos += -(step);
+        },
+        move_right: function (step) {
+            step = step || 1;
+            this.pos += step;
+        }
+    }
+
+    cursor.blink();
+
     let history = '';
     let dir = '/home';
     let prefix = function () {
@@ -99,7 +137,7 @@
     const programs = {
         'clear': function (args) {
             history = '';
-            cursor_pos = prefix().length;
+            cursor.pos = prefix().length;
         },
         'howdy': function (args) {
             write_line('hi there!');
@@ -181,11 +219,6 @@
     ctx.font
     ctx.fillStyle = '#FFFFFF';
 
-    let show_cursor = true;
-    let blink_interval = setInterval(() => {
-        show_cursor = !show_cursor;
-    }, 600);
-
     function parse_command(cmd) {
         if (cmd.length === 0) {
             return [''];
@@ -260,8 +293,7 @@
     }
 
     document.addEventListener('keydown', (e) => {
-        clearInterval(blink_interval);
-        show_cursor = true;
+        cursor.freeze();
         let prefix_length = prefix().length;
         switch (e.key) {
             case 'Enter':
@@ -280,11 +312,11 @@
                 text = prefix();
                 break;
             case 'Backspace':
-                cursor_pos--;
-                if (cursor_pos < prefix_length) {
-                    cursor_pos = prefix_length;
+                cursor.move_left();
+                if (cursor.pos < prefix_length) {
+                    cursor.pos = prefix_length;
                 }
-                text = text.substring(0, cursor_pos) + text.substring(cursor_pos + 1);
+                text = text.substring(0, cursor.pos) + text.substring(cursor.pos + 1);
                 if (text.length < prefix_length) {
                     text = prefix();
                 }
@@ -297,7 +329,7 @@
                     cmdpos = commands.length;
                 }
                 text = prefix() + (commands[commands.length - cmdpos] || '');
-                cursor_pos = text.length;
+                cursor.pos = text.length;
                 break;
             case 'ArrowDown':
                 cmdpos--;
@@ -307,49 +339,46 @@
                 } else {
                     text = prefix() + commands[commands.length - cmdpos];
                 }
-                cursor_pos = text.length;
+                cursor.pos = text.length;
                 break;
             case 'ArrowLeft':
                 if (!e.metaKey) {
-                    cursor_pos--;
-                    if (cursor_pos < prefix_length) {
-                        cursor_pos = prefix_length;
+                    cursor.move_left();
+                    if (cursor.pos < prefix_length) {
+                        cursor.pos = prefix_length;
                     }
                 } else {
-                    cursor_pos = prefix_length;
+                    cursor.pos = prefix_length;
                 }
                 break;
             case 'ArrowRight':
                 if (!e.metaKey) {
-                    cursor_pos++;
-                    if (cursor_pos > text.length) {
-                        cursor_pos = text.length;
+                    cursor.move_right();
+                    if (cursor.pos > text.length) {
+                        cursor.pos = text.length;
                     }
                 } else {
-                    cursor_pos = text.length;
+                    cursor.pos = text.length;
                 }
                 break;
             case 'Control':
             case 'Meta':
                 break;
             default:
-                text = text.substring(0, cursor_pos) + e.key + text.substring(cursor_pos);
-                cursor_pos++;
-                if (cursor_pos > text.length) {
-                    cursor_pos = text.length;
+                text = text.substring(0, cursor.pos) + e.key + text.substring(cursor.pos);
+                cursor.move_right();
+                if (cursor.pos > text.length) {
+                    cursor.pos = text.length;
                 }
                 break;
         }
-        blink_interval = setInterval(() => {
-            show_cursor = !show_cursor;
-        }, 600);
+        cursor.blink();
     });
 
-    let cursor_pos = prefix().length;
+    cursor.pos = prefix().length;
 
     let main_loop = setInterval(() => {
         ctx.clearRect(0, 0, terminal.width, terminal.height);
-        let cursor = show_cursor ? '_' : ' ';
         let lines = history.split('\n');
         let line_count = 0;
         for (let i = 0; i < lines.length; i++) {
@@ -358,7 +387,7 @@
                 ctx.fillText(lines[i], 10, line_height * (i + 1));
             }
         }
-        ctx.fillText(text.substring(0, cursor_pos) + cursor + text.substring(cursor_pos + 1), 10, line_height * (line_count + 1));
+        ctx.fillText(text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1), 10, line_height * (line_count + 1));
     }, 10);
 
 </script>
