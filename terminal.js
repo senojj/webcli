@@ -9,6 +9,11 @@ class Terminal {
         this.background_color = config.background_color || '#000000';
     }
 
+    resize(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+
     bind(identifier) {
         const line_height = this.font_size + 5;
         const fs = {
@@ -249,14 +254,6 @@ class Terminal {
             }
         }
 
-        let terminal = document.getElementById(identifier);
-        terminal.width = this.width;
-        terminal.height = this.height;
-        terminal.style.backgroundColor = this.background_color;
-        let ctx = terminal.getContext('2d');
-        ctx.font = this.font_size + 'px ' + this.font_family;
-        ctx.fillStyle = this.font_color;
-
         function parse_command(cmd) {
             if (cmd.length === 0) {
                 return [''];
@@ -415,14 +412,28 @@ class Terminal {
 
         cursor.pos = prefix().length;
 
-        let main_loop = setInterval(() => {
-            ctx.clearRect(0, 0, terminal.width, terminal.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = this.width;
+        canvas.height = this.height;
+        canvas.style.backgroundColor = this.background_color;
+        const ctx = canvas.getContext('2d');
+        let parent = document.getElementById(identifier);
+        parent.appendChild(canvas);
+
+        let main_loop = setInterval((function(that) { return () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (canvas.width !== that.width || canvas.height !== that.height) {
+                canvas.width = that.width;
+                canvas.height = that.height;
+            }
+            ctx.font = that.font_size + 'px ' + that.font_family;
+            ctx.fillStyle = that.font_color;
             let row_count = 0;
             let column_count = 0;
             let lines = [''];
-            let max_lines = Math.floor(terminal.height / (line_height + 1));
+            let max_lines = Math.floor(canvas.height / (line_height + 1));
             for (let i = 0; i < history.data.length; i++) {
-                if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= terminal.width) {
+                if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
                     lines.push('');
                     row_count++;
                     column_count = 0;
@@ -438,7 +449,7 @@ class Terminal {
             }
             let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
             for (let i = 0; i < operation.length; i++) {
-                if (Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= terminal.width) {
+                if (Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
                     lines.push('');
                     row_count++;
                     column_count = 0;
@@ -452,6 +463,6 @@ class Terminal {
             for (let i = 0; i < lines.length; i++) {
                 ctx.fillText(lines[i], 10, line_height * (i + 1));
             }
-        }, 10);
+        }}(this)), 10);
     }
 }

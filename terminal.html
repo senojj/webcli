@@ -12,17 +12,27 @@
         html, body {
             height: 100%;
         }
+
+        canvas {
+            display: block;
+        }
     </style>
     <script src="./terminal.js"></script>
 </head>
 <body>
-<canvas id="terminal"></canvas>
+<div id="terminal"></div>
+<div id="terminal2"></div>
 <script>
     let terminal = new Terminal({
-        width: document.body.offsetWidth,
-        height: document.body.offsetHeight
+        width: 350,
+        height: 250
     });
     terminal.bind('terminal');
+    terminal.bind('terminal2');
+
+    window.addEventListener('resize', () => {
+        terminal.resize(window.innerWidth, window.innerHeight);
+    }, false)
 </script>
 </body>
 </html>
