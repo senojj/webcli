@@ -8,6 +8,11 @@ class Terminal {
         this.font_color = config.font_color || '#FFFFFF';
         this.background_color = config.background_color || '#000000';
         this.on_exit = config.on_exit || ((e) => {});
+        this.programs = {};
+    }
+
+    add_program(name, func) {
+        this.programs[name] = func;
     }
 
     resize(width, height) {
@@ -150,20 +155,15 @@ class Terminal {
             return node;
         }
 
-        let program_context = {
-            console: history,
-            cursor: cursor
-        }
-
-        const programs = {
-            'clear': function (args) {
-                this.console.clear();
-                this.cursor.reset();
+        let programs = {
+            'clear': function (args, cons, cursor) {
+                cons.clear();
+                cursor.reset();
             },
-            'howdy': function (args) {
-                this.console.write_line('hi there!');
+            'howdy': function (args, cons) {
+                cons.write_line('hi there!');
             },
-            'echo': function (args) {
+            'echo': function (args, cons) {
                 let buf = '';
                 for (let i = 0; i < args.length; i++) {
                     if (i > 0) {
@@ -171,9 +171,9 @@ class Terminal {
                     }
                     buf += args[i]
                 }
-                this.console.write_line(buf);
+                cons.write_line(buf);
             },
-            'ls': function (args) {
+            'ls': function (args, cons) {
                 let list = false;
                 let all = false;
                 let path = dir;
@@ -206,47 +206,47 @@ class Terminal {
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'd') {
-                    this.console.write_line('not a directory: ' + path);
+                    cons.write_line('not a directory: ' + path);
                     return;
                 }
                 let keys = Object.keys(node.nodes);
                 for (let i = 0; i < keys.length; i++) {
                     if (keys[i].substring(0, 1) !== '.' || all) {
                         if (list) {
-                            this.console.write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
+                            cons.write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
                         } else {
-                            this.console.write_line(keys[i]);
+                            cons.write_line(keys[i]);
                         }
                     }
                 }
             },
-            'cd': function (args) {
+            'cd': function (args, cons) {
                 let path = args[0] || dir;
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'd') {
-                    this.console.write_line('not a directory: ' + path);
+                    cons.write_line('not a directory: ' + path);
                     return;
                 }
                 dir = path || '/';
             },
-            'pwd': function (args) {
-                this.console.write_line(dir)
+            'pwd': function (args, cons) {
+                cons.write_line(dir)
             },
-            'cat': function (args) {
+            'cat': function (args, cons) {
                 let path = args[0] || dir;
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'f') {
-                    this.console.write_line('not a file: ' + path);
+                    cons.write_line('not a file: ' + path);
                     return;
                 }
-                this.console.write_line(node.content);
+                cons.write_line(node.content);
             },
-            'mkdir': function (args) {
+            'mkdir': function (args, cons) {
                 let path = args[0];
                 if (path === undefined) {
-                    this.console.write_line('missing argument: path');
+                    cons.write_line('missing argument: path');
                     return;
                 }
                 path = resolve_path(dir, path);
@@ -254,7 +254,7 @@ class Terminal {
                 let child = path.substring(path.lastIndexOf('/') + 1);
                 let node = find_node(parent);
                 if (node === undefined || node.type !== 'd') {
-                    this.console.write_line('not a directory: ' + path);
+                    cons.write_line('not a directory: ' + path);
                     return;
                 }
                 node.nodes[child] = {
@@ -266,6 +266,8 @@ class Terminal {
                 that.on_exit(canvas);
             }
         }
+
+        programs = Object.assign(this.programs, programs);
 
         function parse_command(cmd) {
             if (cmd.length === 0) {
@@ -353,7 +355,7 @@ class Terminal {
                     commands.push(command);
                     let command_parts = parse_command(command);
                     if (command_parts[0] in programs) {
-                        programs[command_parts[0]].apply(program_context, [command_parts.slice(1)]);
+                        programs[command_parts[0]](command_parts.slice(1), history, cursor);
                     } else {
                         history.write_line('command not found: ' + command_parts[0]);
                     }

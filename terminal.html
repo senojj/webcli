@@ -29,6 +29,9 @@
             document.getElementById('terminal').remove();
         }
     });
+    terminal.add_program('nope', (args, cons) => {
+        cons.write_line('nope');
+    });
     terminal.bind('terminal');
 
     window.addEventListener('resize', () => {
