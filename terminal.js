@@ -91,6 +91,9 @@ class Terminal {
             move_right: function (step) {
                 step = step || 1;
                 this.pos += step;
+            },
+            reset: function () {
+                this.pos = prefix().length;
             }
         };
 
@@ -147,13 +150,18 @@ class Terminal {
             return node;
         }
 
+        let program_context = {
+            console: history,
+            cursor: cursor
+        }
+
         const programs = {
             'clear': function (args) {
-                history.clear();
-                cursor.pos = prefix().length;
+                this.console.clear();
+                this.cursor.reset();
             },
             'howdy': function (args) {
-                history.write_line('hi there!');
+                this.console.write_line('hi there!');
             },
             'echo': function (args) {
                 let buf = '';
@@ -163,7 +171,7 @@ class Terminal {
                     }
                     buf += args[i]
                 }
-                history.write_line(buf);
+                this.console.write_line(buf);
             },
             'ls': function (args) {
                 let list = false;
@@ -198,16 +206,16 @@ class Terminal {
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'd') {
-                    history.write_line('not a directory: ' + path);
+                    this.console.write_line('not a directory: ' + path);
                     return;
                 }
                 let keys = Object.keys(node.nodes);
                 for (let i = 0; i < keys.length; i++) {
                     if (keys[i].substring(0, 1) !== '.' || all) {
                         if (list) {
-                            history.write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
+                            this.console.write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
                         } else {
-                            history.write_line(keys[i]);
+                            this.console.write_line(keys[i]);
                         }
                     }
                 }
@@ -217,28 +225,28 @@ class Terminal {
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'd') {
-                    history.write_line('not a directory: ' + path);
+                    this.console.write_line('not a directory: ' + path);
                     return;
                 }
                 dir = path || '/';
             },
             'pwd': function (args) {
-                history.write_line(dir)
+                this.console.write_line(dir)
             },
             'cat': function (args) {
                 let path = args[0] || dir;
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'f') {
-                    history.write_line('not a file: ' + path);
+                    this.console.write_line('not a file: ' + path);
                     return;
                 }
-                history.write_line(node.content);
+                this.console.write_line(node.content);
             },
             'mkdir': function (args) {
                 let path = args[0];
                 if (path === undefined) {
-                    history.write_line('missing argument: path');
+                    this.console.write_line('missing argument: path');
                     return;
                 }
                 path = resolve_path(dir, path);
@@ -246,7 +254,7 @@ class Terminal {
                 let child = path.substring(path.lastIndexOf('/') + 1);
                 let node = find_node(parent);
                 if (node === undefined || node.type !== 'd') {
-                    history.write_line('not a directory: ' + path);
+                    this.console.write_line('not a directory: ' + path);
                     return;
                 }
                 node.nodes[child] = {
@@ -345,7 +353,7 @@ class Terminal {
                     commands.push(command);
                     let command_parts = parse_command(command);
                     if (command_parts[0] in programs) {
-                        programs[command_parts[0]]((command_parts.slice(1)));
+                        programs[command_parts[0]].apply(program_context, [command_parts.slice(1)]);
                     } else {
                         history.write_line('command not found: ' + command_parts[0]);
                     }
