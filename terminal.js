@@ -1,8 +1,8 @@
 class Terminal {
     constructor(config) {
         config = config || {};
-        this.width = config.width || 550;
-        this.height = config.height || 245;
+        this.width = config.width;
+        this.height = config.height;
         this.font_size = config.font_size || 16;
         this.font_family = config.font_family || 'Courier New';
         this.font_color = config.font_color || '#FFFFFF';
@@ -436,12 +436,12 @@ class Terminal {
 
         cursor.pos = prefix().length;
 
+        let parent = document.getElementById(identifier);
         const canvas = document.createElement("canvas");
-        canvas.width = this.width;
-        canvas.height = this.height;
+        canvas.width = this.width || parent.offsetWidth;
+        canvas.height = this.height || parent.offsetHeight;
         canvas.style.backgroundColor = this.background_color;
         const ctx = canvas.getContext('2d');
-        let parent = document.getElementById(identifier);
         parent.appendChild(canvas);
 
         let scroll_point = 0;
@@ -483,10 +483,12 @@ class Terminal {
 
         let main_loop = setInterval((function (that) {
             return () => {
+                let width = that.width || parent.offsetWidth;
+                let height = that.height || parent.offsetHeight;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                if (canvas.width !== that.width || canvas.height !== that.height) {
-                    canvas.width = that.width;
-                    canvas.height = that.height;
+                if (canvas.width !== width || canvas.height !== height) {
+                    canvas.width = width;
+                    canvas.height = height;
                 }
                 ctx.font = that.font_size + 'px ' + that.font_family;
                 ctx.fillStyle = that.font_color;

@@ -16,15 +16,24 @@
         canvas {
             display: block;
         }
+
+        #terminal {
+            width: 100%;
+            height: 250px;
+        }
+
+        #browser {
+            width: 100%;
+            height: 100%;
+        }
     </style>
     <script src="./terminal.js"></script>
 </head>
 <body>
 <div id="terminal"></div>
+<div id="browser"></div>
 <script>
     let terminal = new Terminal({
-        width: window.innerWidth,
-        height: window.innerHeight,
         on_exit: (e) => {
             document.getElementById('terminal').remove();
         }
@@ -35,7 +44,7 @@
     terminal.bind('terminal');
 
     window.addEventListener('resize', () => {
-        terminal.resize(window.innerWidth, window.innerHeight);
+        terminal.resize();
     }, false)
 </script>
 </body>
