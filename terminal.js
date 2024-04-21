@@ -458,6 +458,29 @@ class Terminal {
             }
         });
 
+        let mouse_down = true;
+
+        canvas.addEventListener('mousedown', e => {
+            mouse_down = true;
+        })
+
+        canvas.addEventListener('mouseup', e => {
+            mouse_down = false;
+        })
+
+        canvas.addEventListener('mouseout', e => {
+            mouse_down = false;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (mouse_down) {
+                scroll_point += e.movementY;
+            }
+            if (scroll_point < 0) {
+                scroll_point = 0;
+            }
+        })
+
         let main_loop = setInterval((function (that) {
             return () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
