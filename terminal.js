@@ -367,6 +367,7 @@ class Terminal {
                         history.write_line('command not found: ' + command_parts[0]);
                     }
                     text = prefix();
+                    cmdpos = 0;
                     break;
                 case 'Backspace':
                     cursor.move_left();
