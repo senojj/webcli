@@ -31,7 +31,13 @@ class Terminal {
                     nodes: {
                         'about': {
                             type: 'f',
-                            content: 'this is about me'
+                            content: '-- Profile --\n' +
+                                     'First Name: Joshua\n' +
+                                     'Last Name: Jones\n\n' +
+                                     '-- Employment History --\n' +
+                                     'Dynata\n' +
+                                     'From: 2020-12-08\n' +
+                                     'To: Present'
                         },
                         'friends': {
                             type: 'd',
@@ -415,6 +421,7 @@ class Terminal {
                 case 'Meta':
                     break;
                 default:
+                    scroll_point = 0;
                     text = text.substring(0, cursor.pos) + e.key + text.substring(cursor.pos);
                     cursor.move_right();
                     if (cursor.pos > text.length) {
@@ -434,6 +441,22 @@ class Terminal {
         const ctx = canvas.getContext('2d');
         let parent = document.getElementById(identifier);
         parent.appendChild(canvas);
+
+        let scroll_point = 0;
+
+        canvas.addEventListener('wheel', e => {
+            if (e.deltaY % 2 === 0) {
+                if (e.deltaY > 0) {
+                    scroll_point++;
+                } else {
+                    scroll_point--;
+                }
+            }
+            console.log(scroll_point);
+            if (scroll_point < 0) {
+                scroll_point = 0;
+            }
+        });
 
         let main_loop = setInterval((function(that) { return () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -457,10 +480,6 @@ class Terminal {
                     continue;
                 }
                 lines[row_count] += history.data[i];
-                if (row_count + 1 > max_lines) {
-                    lines.shift();
-                    row_count--;
-                }
             }
             let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
             for (let i = 0; i < operation.length; i++) {
@@ -470,12 +489,12 @@ class Terminal {
                     column_count = 0;
                 }
                 lines[row_count] += operation[i];
-                if (row_count + 1 > max_lines) {
-                    lines.shift();
-                    row_count--;
-                }
             }
-            for (let i = 0; i < lines.length; i++) {
+            let remove_cnt = Math.min(lines.length - max_lines, lines.length);
+            for (let i = scroll_point; i < remove_cnt - 1; i++) {
+                lines.shift();
+            }
+            for (let i = 0; i < Math.min(max_lines + 1, lines.length); i++) {
                 ctx.fillText(lines[i], 10, line_height * (i + 1));
             }
         }}(this)), 10);
