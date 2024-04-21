@@ -37,8 +37,12 @@
 
     let terminal = new Terminal({
         on_load: (cons, fs) => {
-            const hnd = fs.open('example', true);
-            fs.write_line(hnd, 'this is a test');
+            fetch('./about.html')
+                .then(response => response.text())
+                .then((data) => {
+                    const hnd = fs.open('example', true);
+                    fs.write_line(hnd, data);
+                })
         },
         on_exit: (e) => {
             document.getElementById('terminal').remove();
