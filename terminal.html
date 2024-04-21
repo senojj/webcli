@@ -36,6 +36,10 @@
     let browser = document.getElementById('browser');
 
     let terminal = new Terminal({
+        on_load: (cons, fs) => {
+            const hnd = fs.open('example', true);
+            fs.write_line(hnd, 'this is a test');
+        },
         on_exit: (e) => {
             document.getElementById('terminal').remove();
         }
