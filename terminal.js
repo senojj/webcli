@@ -24,7 +24,7 @@ class Terminal {
     bind(identifier) {
         const that = this;
         const line_height = this.font_size + 5;
-        const fs = {
+        const file_system = {
             type: 'd',
             nodes: {
                 'home': {
@@ -150,7 +150,7 @@ class Terminal {
         function find_node(path) {
             let resolved_path = resolve_path(dir, path);
             let path_parts = resolved_path.split('/');
-            let node = fs;
+            let node = file_system;
             for (let i = 0; i < path_parts.length; i++) {
                 if (node === undefined) {
                     break;
@@ -163,9 +163,9 @@ class Terminal {
         }
 
         let programs = {
-            'clear': function (args, cons, cursor) {
+            'clear': function (args, cons) {
                 cons.clear();
-                cursor.reset();
+                cons.cursor.reset();
             },
             'howdy': function (args, cons) {
                 cons.write_line('hi there!');
@@ -240,15 +240,14 @@ class Terminal {
             'pwd': function (args, cons) {
                 cons.write_line(dir)
             },
-            'cat': function (args, cons) {
+            'cat': function (args, cons, fs) {
                 let path = args[0] || dir;
-                path = resolve_path(dir, path);
-                let node = find_node(path);
-                if (node === undefined || node.type !== 'f') {
-                    cons.write_line('not a file: ' + path);
-                    return;
+                try {
+                    let content = fs.read_file(path);
+                    cons.write_line(content);
+                } catch (e) {
+                    cons.write_line(e)
                 }
-                cons.write_line(node.content);
             },
             'mkdir': function (args, cons) {
                 let path = args[0];
@@ -349,6 +348,40 @@ class Terminal {
             return parts;
         }
 
+        let _cons = {
+            write_line: str => {
+                history.write_line(str);
+            },
+            write: str => {
+                history.write(str);
+            },
+            clear: () => {
+                history.clear();
+            },
+            cursor: {
+                move_left: step => {
+                    cursor.move_left(step);
+                },
+                move_right: step => {
+                    cursor.move_right(step);
+                },
+                reset: () => {
+                    cursor.reset();
+                }
+            }
+        };
+
+        let _fs = {
+            read_file: path => {
+                path = resolve_path(dir, path);
+                let node = find_node(path);
+                if (node === undefined || node.type !== 'f') {
+                    throw new Error('not a file: ' + path);
+                }
+                return node.content;
+            }
+        };
+
         document.addEventListener('keydown', (e) => {
             cursor.freeze();
             let prefix_length = prefix().length;
@@ -362,7 +395,7 @@ class Terminal {
                     commands.push(command);
                     let command_parts = parse_command(command);
                     if (command_parts[0] in programs) {
-                        programs[command_parts[0]](command_parts.slice(1), history, cursor);
+                        programs[command_parts[0]](command_parts.slice(1), _cons, _fs);
                     } else {
                         history.write_line('command not found: ' + command_parts[0]);
                     }
@@ -429,6 +462,9 @@ class Terminal {
                     if (cursor.pos > text.length) {
                         cursor.pos = text.length;
                     }
+                    if (e.key === ' ') {
+                        e.preventDefault();
+                    }
                     break;
             }
             cursor.blink();
@@ -452,10 +488,10 @@ class Terminal {
             } else {
                 scroll_point--;
             }
-            console.log(scroll_point);
             if (scroll_point < 0) {
                 scroll_point = 0;
             }
+            e.preventDefault();
         });
 
         let mouse_down = true;
