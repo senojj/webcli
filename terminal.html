@@ -44,10 +44,10 @@
                 .then(response => response.text())
                 .then((data) => {
                     const hnd = fs.open('index.html', true);
-                    fs.write_line(hnd, data);
+                    fs.write(hnd, data);
                 })
         },
-        on_exit: (e) => {
+        on_exit: _ => {
             document.getElementById('terminal').remove();
         }
     });
@@ -56,7 +56,7 @@
     });
     terminal.add_program('nav', (args, cons, fs) => {
         try {
-            let content = '';
+            let content;
             if (fs.is_directory(args[0])) {
                 content = fs.read_file(args[0] + '/index.html');
             } else {
