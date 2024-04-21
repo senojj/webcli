@@ -143,6 +143,13 @@ class Terminal {
             write_line: function (handle, str) {
                 handle.content += str + '\n';
             },
+            is_directory: function (path) {
+                if (path === undefined) {
+                    throw 'missing argument: path';
+                }
+                let node = find_node(path);
+                return !(node === undefined || node.type !== 'd');
+            },
             make_dir: function (path) {
                 if (path === undefined) {
                     throw 'missing argument: path';

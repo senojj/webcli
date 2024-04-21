@@ -18,13 +18,16 @@
         }
 
         #terminal {
-            width: 100%;
-            height: 250px;
+            float: left;
+            width: 50%;
+            height: 100%;
         }
 
         #browser {
-            width: 100%;
+            float: left;
+            width: 50%;
             height: 100%;
+            overflow: scroll;
         }
     </style>
     <script src="./terminal.js"></script>
@@ -40,7 +43,7 @@
             fetch('./about.html')
                 .then(response => response.text())
                 .then((data) => {
-                    const hnd = fs.open('example', true);
+                    const hnd = fs.open('index.html', true);
                     fs.write_line(hnd, data);
                 })
         },
@@ -53,7 +56,13 @@
     });
     terminal.add_program('nav', (args, cons, fs) => {
         try {
-            browser.innerHTML = fs.read_file(args[0]);
+            let content = '';
+            if (fs.is_directory(args[0])) {
+                content = fs.read_file(args[0] + '/index.html');
+            } else {
+                content = fs.read_file(args[0]);
+            }
+            browser.innerHTML = content;
         } catch (e) {
             cons.write_line(e);
         }
