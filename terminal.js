@@ -7,7 +7,8 @@ class Terminal {
         this.font_family = config.font_family || 'Courier New';
         this.font_color = config.font_color || '#FFFFFF';
         this.background_color = config.background_color || '#000000';
-        this.on_exit = config.on_exit || ((e) => {});
+        this.on_exit = config.on_exit || ((e) => {
+        });
         this.programs = {};
     }
 
@@ -32,12 +33,12 @@ class Terminal {
                         'about': {
                             type: 'f',
                             content: '-- Profile --\n' +
-                                     'First Name: Joshua\n' +
-                                     'Last Name: Jones\n\n' +
-                                     '-- Employment History --\n' +
-                                     'Dynata\n' +
-                                     'From: 2020-12-08\n' +
-                                     'To: Present'
+                                'First Name: Joshua\n' +
+                                'Last Name: Jones\n\n' +
+                                '-- Employment History --\n' +
+                                'Dynata\n' +
+                                'From: 2020-12-08\n' +
+                                'To: Present'
                         },
                         'friends': {
                             type: 'd',
@@ -445,12 +446,10 @@ class Terminal {
         let scroll_point = 0;
 
         canvas.addEventListener('wheel', e => {
-            if (e.deltaY % 2 === 0) {
-                if (e.deltaY > 0) {
-                    scroll_point++;
-                } else {
-                    scroll_point--;
-                }
+            if (e.deltaY > 0) {
+                scroll_point++;
+            } else {
+                scroll_point--;
             }
             console.log(scroll_point);
             if (scroll_point < 0) {
@@ -458,45 +457,50 @@ class Terminal {
             }
         });
 
-        let main_loop = setInterval((function(that) { return () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (canvas.width !== that.width || canvas.height !== that.height) {
-                canvas.width = that.width;
-                canvas.height = that.height;
-            }
-            ctx.font = that.font_size + 'px ' + that.font_family;
-            ctx.fillStyle = that.font_color;
-            let row_count = 0;
-            let column_count = 0;
-            let lines = [''];
-            let max_lines = Math.floor(canvas.height / (line_height + 1));
-            for (let i = 0; i < history.data.length; i++) {
-                if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
-                    lines.push('');
-                    row_count++;
-                    column_count = 0;
+        let main_loop = setInterval((function (that) {
+            return () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (canvas.width !== that.width || canvas.height !== that.height) {
+                    canvas.width = that.width;
+                    canvas.height = that.height;
                 }
-                if (history.data[i] === '\n') {
-                    continue;
+                ctx.font = that.font_size + 'px ' + that.font_family;
+                ctx.fillStyle = that.font_color;
+                let row_count = 0;
+                let column_count = 0;
+                let lines = [''];
+                let max_lines = Math.floor(canvas.height / (line_height + 1));
+                for (let i = 0; i < history.data.length; i++) {
+                    if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
+                        lines.push('');
+                        row_count++;
+                        column_count = 0;
+                    }
+                    if (history.data[i] === '\n') {
+                        continue;
+                    }
+                    lines[row_count] += history.data[i];
                 }
-                lines[row_count] += history.data[i];
-            }
-            let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
-            for (let i = 0; i < operation.length; i++) {
-                if (Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
-                    lines.push('');
-                    row_count++;
-                    column_count = 0;
+                let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
+                for (let i = 0; i < operation.length; i++) {
+                    if (Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
+                        lines.push('');
+                        row_count++;
+                        column_count = 0;
+                    }
+                    lines[row_count] += operation[i];
                 }
-                lines[row_count] += operation[i];
+                if (scroll_point > lines.length) {
+                    scroll_point = lines.length;
+                }
+                let remove_cnt = Math.min(lines.length - max_lines, lines.length);
+                for (let i = scroll_point; i < remove_cnt; i++) {
+                    lines.shift();
+                }
+                for (let i = 0; i < Math.min(max_lines + 1, lines.length); i++) {
+                    ctx.fillText(lines[i], 10, line_height * (i + 1));
+                }
             }
-            let remove_cnt = Math.min(lines.length - max_lines, lines.length);
-            for (let i = scroll_point; i < remove_cnt - 1; i++) {
-                lines.shift();
-            }
-            for (let i = 0; i < Math.min(max_lines + 1, lines.length); i++) {
-                ctx.fillText(lines[i], 10, line_height * (i + 1));
-            }
-        }}(this)), 10);
+        }(this)), 10);
     }
 }
