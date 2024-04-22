@@ -4,6 +4,9 @@ class Terminal {
         this.width = config.width;
         this.height = config.height;
         this.font_size = config.font_size || 16;
+        this.font_style = config.font_style || 'normal';
+        this.font_variant = config.font_variant || 'normal';
+        this.font_weight = config.font_weight || 'normal';
         this.font_family = config.font_family || 'Courier New';
         this.font_color = config.font_color || '#FFFFFF';
         this.background_color = config.background_color || '#000000';
@@ -236,15 +239,31 @@ class Terminal {
                 cons.clear();
                 cons.cursor.reset();
             },
+            'background': function (args) {
+                that.background_color = args[0];
+                canvas.style.backgroundColor = that.background_color;
+            },
             'font': function (args) {
                 switch (args[0]) {
                     case 'color':
                         that.font_color = args[1];
                         break;
+                    case 'style':
+                        that.font_style = args[1];
+                        break;
+                    case 'variant':
+                        that.font_variant = args[1];
+                        break;
+                    case 'weight':
+                        that.font_weight = args[1];
+                        break;
                     case 'size':
                         if (!isNaN(args[1])) {
                             that.font_size = parseInt(args[1]);
                         }
+                        break;
+                    case 'family':
+                        that.font_family = args[1];
                         break;
                 }
             },
@@ -605,7 +624,7 @@ class Terminal {
                     canvas.width = width;
                     canvas.height = height;
                 }
-                ctx.font = that.font_size + 'px ' + that.font_family;
+                ctx.font = that.font_style + ' ' + that.font_variant + ' ' + that.font_weight + ' ' + that.font_size + 'px ' + that.font_family;
                 ctx.fillStyle = that.font_color;
                 const line_height = that.font_size + 5;
                 let row_count = 0;
