@@ -25,7 +25,6 @@ class Terminal {
 
     bind(identifier) {
         const that = this;
-        const line_height = this.font_size + 5;
         const file_system = {
             type: 'd',
             nodes: {
@@ -236,6 +235,18 @@ class Terminal {
             'clear': function (args, cons) {
                 cons.clear();
                 cons.cursor.reset();
+            },
+            'font': function (args) {
+                switch (args[0]) {
+                    case 'color':
+                        that.font_color = args[1];
+                        break;
+                    case 'size':
+                        if (!isNaN(args[1])) {
+                            that.font_size = parseInt(args[1]);
+                        }
+                        break;
+                }
             },
             'howdy': function (args, cons) {
                 cons.write_line('hi there!');
@@ -596,10 +607,14 @@ class Terminal {
                 }
                 ctx.font = that.font_size + 'px ' + that.font_family;
                 ctx.fillStyle = that.font_color;
+                const line_height = that.font_size + 5;
                 let row_count = 0;
                 let column_count = 0;
                 let lines = [''];
-                let max_lines = Math.floor(canvas.height / (line_height + 1));
+                console.log('canvas: ' + canvas.height);
+                console.log('line-height: ' + line_height);
+                let max_lines = Math.floor(canvas.height / line_height);
+                console.log('max lines: ' + max_lines);
                 for (let i = 0; i < history.data.length; i++) {
                     if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
                         lines.push('');
