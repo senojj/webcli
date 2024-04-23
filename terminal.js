@@ -63,6 +63,27 @@ class Terminal {
             }
         };
 
+        const handles = {
+            ndx: 0,
+            hnd: [],
+            acquire: function (obj) {
+                let i = 0;
+                for (; this.hnd[i] !== undefined; i++) {}
+                this.hnd[i] = obj;
+                return i;
+            },
+            lookup: function (handle) {
+                const hnd = this.hnd[handle];
+                if (handle === undefined) {
+                    throw 'no such handle: ' + handle;
+                }
+                return hnd;
+            },
+            close: function (handle) {
+                delete this.hnd[handle];
+            }
+        };
+
         const history = {
             data: '',
             write_line: function (str) {
@@ -133,17 +154,38 @@ class Terminal {
                         content: ''
                     };
                 }
-                let node = parent_node.nodes[child];
+                const node = parent_node.nodes[child];
                 if (node === undefined || node.type !== 'f') {
-                    throw new Error('not a file: ' + path);
+                    throw 'not a file: ' + path;
                 }
-                return node;
+                const hnd = handles.acquire(node);
+                if (current_process !== null) {
+                    handles.lookup(current_process).open_files.push(hnd);
+                }
+                return hnd;
             },
             write: function (handle, str) {
-                handle.content += str;
+                const node = handles.lookup(handle);
+                node.content += str;
             },
             write_line: function (handle, str) {
-                handle.content += str + '\n';
+                const node = handles.lookup(handle);
+                node.content += str + '\n';
+            },
+            read_all: function (handle) {
+                const node = handles.lookup(handle);
+                return node.content;
+            },
+            close: function (handle) {
+                handles.close(handle);
+                const proc = handles.lookup(current_process);
+                const hnd = proc.open_files.indexOf(handle);
+                if (hnd > -1) {
+                    delete proc.open_files[hnd];
+                }
+            },
+            getpid: function () {
+                return current_process;
             },
             is_directory: function (path) {
                 if (path === undefined) {
@@ -170,14 +212,6 @@ class Terminal {
                     type: 'd',
                     nodes: {}
                 };
-            },
-            read_file: path => {
-                path = resolve_path(dir, path);
-                let node = find_node(path);
-                if (node === undefined || node.type !== 'f') {
-                    throw new Error('not a file: ' + path);
-                }
-                return node.content;
             }
         };
 
@@ -343,7 +377,7 @@ class Terminal {
             'cat': function (args, cons, fs) {
                 let path = args[0] || dir;
                 try {
-                    let content = fs.read_file(path);
+                    let content = fs.read_all(fs.open(path));
                     cons.write_line(content);
                 } catch (e) {
                     cons.write_line(e)
@@ -478,6 +512,8 @@ class Terminal {
             }
         };
 
+        let current_process = null;
+
         document.addEventListener('keydown', (e) => {
             cursor.freeze();
             let prefix_length = prefix().length;
@@ -491,7 +527,16 @@ class Terminal {
                     commands.push(command);
                     let command_parts = parse_command(command);
                     if (command_parts[0] in programs) {
+                        const process = {
+                            open_files: []
+                        };
+                        current_process = handles.acquire(process);
                         programs[command_parts[0]](command_parts.slice(1), _cons, fs);
+                        for (let i = 0; i < process.open_files.length; i++) {
+                            handles.close(process.open_files[i]);
+                        }
+                        handles.close(current_process);
+                        current_process = null;
                     } else {
                         history.write_line('command not found: ' + command_parts[0]);
                     }
@@ -630,10 +675,7 @@ class Terminal {
                 let row_count = 0;
                 let column_count = 0;
                 let lines = [''];
-                console.log('canvas: ' + canvas.height);
-                console.log('line-height: ' + line_height);
                 let max_lines = Math.floor(canvas.height / line_height);
-                console.log('max lines: ' + max_lines);
                 for (let i = 0; i < history.data.length; i++) {
                     if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
                         lines.push('');

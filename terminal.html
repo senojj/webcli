@@ -58,9 +58,11 @@
         try {
             let content;
             if (fs.is_directory(args[0])) {
-                content = fs.read_file(args[0] + '/index.html');
+                const hnd = fs.open(args[0] + '/index.html');
+                content = fs.read_all(hnd);
             } else {
-                content = fs.read_file(args[0]);
+                const hnd = fs.open(args[0]);
+                content = fs.read_all(hnd);
             }
             browser.innerHTML = content;
         } catch (e) {
