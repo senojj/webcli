@@ -63,6 +63,27 @@ class Terminal {
             }
         };
 
+        class File {
+            constructor() {
+                this.type = 'f';
+                this.content = '';
+            }
+        }
+
+        class Directory {
+            constructor() {
+                this.type = 'd';
+                this.nodes = {};
+            }
+        }
+
+        class Process {
+            constructor() {
+                this.type = 'p';
+                this.open_files = [];
+            }
+        }
+
         const handles = {
             ndx: 0,
             hnd: [],
@@ -85,10 +106,7 @@ class Terminal {
             }
         };
 
-        const stdout = handles.acquire({
-            type: 'f',
-            content: '',
-        });
+        const stdout = handles.acquire(new File());
 
         const cursor = {
             char: '_',
@@ -426,10 +444,7 @@ class Terminal {
                     throw 'not a directory: ' + path;
                 }
                 if (parent_node.nodes[child] === undefined && create) {
-                    parent_node.nodes[child] = {
-                        type: 'f',
-                        content: ''
-                    };
+                    parent_node.nodes[child] = new File();
                 }
                 const node = parent_node.nodes[child];
                 if (node === undefined || node.type !== 'f') {
@@ -507,9 +522,7 @@ class Terminal {
                     commands.push(command);
                     let command_parts = parse_command(command);
                     if (command_parts[0] in programs) {
-                        const process = {
-                            open_files: []
-                        };
+                        const process = new Process();
                         current_process = handles.acquire(process);
                         programs[command_parts[0]](command_parts.slice(1), stdlib);
                         for (let i = 0; i < process.open_files.length; i++) {
