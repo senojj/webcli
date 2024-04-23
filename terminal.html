@@ -39,34 +39,34 @@
     let browser = document.getElementById('browser');
 
     let terminal = new Terminal({
-        on_load: (cons, fs) => {
+        on_load: (stdlib) => {
             fetch('./about.html')
                 .then(response => response.text())
                 .then((data) => {
-                    const hnd = fs.open('index.html', true);
-                    fs.write(hnd, data);
+                    const hnd = stdlib.open('index.html', true);
+                    stdlib.fprint(hnd, data);
                 })
         },
         on_exit: _ => {
             document.getElementById('terminal').remove();
         }
     });
-    terminal.add_program('nope', (args, cons) => {
-        cons.write_line('nope');
+    terminal.add_program('nope', (args, stdlib) => {
+        stdlib.print('nope\n');
     });
-    terminal.add_program('nav', (args, cons, fs) => {
+    terminal.add_program('nav', (args, stdlib) => {
         try {
             let content;
-            if (fs.is_directory(args[0])) {
-                const hnd = fs.open(args[0] + '/index.html');
-                content = fs.read_all(hnd);
+            if (stdlib.is_directory(args[0])) {
+                const hnd = stdlib.open(args[0] + '/index.html');
+                content = stdlib.read_all(hnd);
             } else {
-                const hnd = fs.open(args[0]);
-                content = fs.read_all(hnd);
+                const hnd = stdlib.open(args[0]);
+                content = stdlib.read_all(hnd);
             }
             browser.innerHTML = content;
         } catch (e) {
-            cons.write_line(e);
+            stdlib.print(e);
         }
     });
     terminal.bind('terminal');

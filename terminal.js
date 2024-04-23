@@ -10,7 +10,7 @@ class Terminal {
         this.font_family = config.font_family || 'Courier New';
         this.font_color = config.font_color || '#FFFFFF';
         this.background_color = config.background_color || '#000000';
-        this.on_load = config.on_load || ((cons, fs) => {
+        this.on_load = config.on_load || ((stdlib) => {
         });
         this.on_exit = config.on_exit || ((e) => {
         });
@@ -68,7 +68,8 @@ class Terminal {
             hnd: [],
             acquire: function (obj) {
                 let i = 0;
-                for (; this.hnd[i] !== undefined; i++) {}
+                for (; this.hnd[i] !== undefined; i++) {
+                }
                 this.hnd[i] = obj;
                 return i;
             },
@@ -84,21 +85,10 @@ class Terminal {
             }
         };
 
-        const history = {
-            data: '',
-            write_line: function (str) {
-                this.data += (str + '\n');
-            },
-            write: function (str) {
-                this.data += str;
-            },
-            lines: function () {
-                return this.data.split('\n');
-            },
-            clear: function () {
-                this.data = '';
-            }
-        };
+        const stdout = handles.acquire({
+            type: 'f',
+            content: '',
+        });
 
         const cursor = {
             char: '_',
@@ -136,82 +126,6 @@ class Terminal {
             },
             reset: function () {
                 this.pos = prefix().length;
-            }
-        };
-
-        const fs = {
-            open: (path, create) => {
-                path = resolve_path(dir, path);
-                let parent = path.substring(0, path.lastIndexOf('/'));
-                let child = path.substring(path.lastIndexOf('/') + 1);
-                let parent_node = find_node(parent);
-                if (parent_node === undefined || parent_node.type !== 'd') {
-                    throw 'not a directory: ' + path;
-                }
-                if (parent_node.nodes[child] === undefined && create) {
-                    parent_node.nodes[child] = {
-                        type: 'f',
-                        content: ''
-                    };
-                }
-                const node = parent_node.nodes[child];
-                if (node === undefined || node.type !== 'f') {
-                    throw 'not a file: ' + path;
-                }
-                const hnd = handles.acquire(node);
-                if (current_process !== null) {
-                    handles.lookup(current_process).open_files.push(hnd);
-                }
-                return hnd;
-            },
-            write: function (handle, str) {
-                const node = handles.lookup(handle);
-                node.content += str;
-            },
-            write_line: function (handle, str) {
-                const node = handles.lookup(handle);
-                node.content += str + '\n';
-            },
-            read_all: function (handle) {
-                const node = handles.lookup(handle);
-                return node.content;
-            },
-            close: function (handle) {
-                handles.close(handle);
-                const proc = handles.lookup(current_process);
-                const hnd = proc.open_files.indexOf(handle);
-                if (hnd > -1) {
-                    delete proc.open_files[hnd];
-                }
-            },
-            getpid: function () {
-                return current_process;
-            },
-            is_directory: function (path) {
-                if (path === undefined) {
-                    throw 'missing argument: path';
-                }
-                let node = find_node(path);
-                return !(node === undefined || node.type !== 'd');
-            },
-            make_dir: function (path) {
-                if (path === undefined) {
-                    throw 'missing argument: path';
-                }
-                path = resolve_path(dir, path);
-                let parent = path.substring(0, path.lastIndexOf('/'));
-                let child = path.substring(path.lastIndexOf('/') + 1);
-                let parent_node = find_node(parent);
-                if (parent_node === undefined || parent_node.type !== 'd') {
-                    throw 'not a directory: ' + path;
-                }
-                if (parent_node.nodes[child] !== undefined) {
-                    throw path + ' already exists';
-                }
-                parent_node.nodes[child] = {
-                    type: 'd',
-                    nodes: {}
-                };
             }
         };
 
@@ -269,15 +183,15 @@ class Terminal {
         }
 
         let programs = {
-            'clear': function (args, cons) {
-                cons.clear();
-                cons.cursor.reset();
+            'clear': (args, stdlib) => {
+                stdlib.clear();
+                stdlib.cursor_reset();
             },
-            'background': function (args) {
+            'background': (args) => {
                 that.background_color = args[0];
                 canvas.style.backgroundColor = that.background_color;
             },
-            'font': function (args) {
+            'font': (args) => {
                 switch (args[0]) {
                     case 'color':
                         that.font_color = args[1];
@@ -301,10 +215,10 @@ class Terminal {
                         break;
                 }
             },
-            'howdy': function (args, cons) {
-                cons.write_line('hi there!');
+            'howdy': (args, stdlib) => {
+                stdlib.print('hi there!\n');
             },
-            'echo': function (args, cons) {
+            'echo': (args, stdlib) => {
                 let buf = '';
                 for (let i = 0; i < args.length; i++) {
                     if (i > 0) {
@@ -312,9 +226,9 @@ class Terminal {
                     }
                     buf += args[i]
                 }
-                cons.write_line(buf);
+                stdlib.print(buf + '\n');
             },
-            'ls': function (args, cons) {
+            'ls': (args, stdlib) => {
                 let list = false;
                 let all = false;
                 let path = dir;
@@ -347,46 +261,46 @@ class Terminal {
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'd') {
-                    cons.write_line('not a directory: ' + path);
+                    stdlib.print('not a directory: ' + path + '\n');
                     return;
                 }
                 let keys = Object.keys(node.nodes);
                 for (let i = 0; i < keys.length; i++) {
                     if (keys[i].substring(0, 1) !== '.' || all) {
                         if (list) {
-                            cons.write_line(node.nodes[keys[i]].type + '  ' + keys[i]);
+                            stdlib.print(node.nodes[keys[i]].type + '  ' + keys[i] + '\n');
                         } else {
-                            cons.write_line(keys[i]);
+                            stdlib.print(keys[i] + '\n');
                         }
                     }
                 }
             },
-            'cd': function (args, cons) {
+            'cd': (args, stdlib) => {
                 let path = args[0] || dir;
                 path = resolve_path(dir, path);
                 let node = find_node(path);
                 if (node === undefined || node.type !== 'd') {
-                    cons.write_line('not a directory: ' + path);
+                    stdlib.print('not a directory: ' + path + '\n');
                     return;
                 }
                 dir = path || '/';
             },
-            'pwd': function (args, cons) {
-                cons.write_line(dir)
+            'pwd': (args, stdlib) => {
+                stdlib.print(dir + '\n');
             },
-            'cat': function (args, cons, fs) {
+            'cat': (args, stdlib) => {
                 let path = args[0] || dir;
                 try {
-                    let content = fs.read_all(fs.open(path));
-                    cons.write_line(content);
+                    let content = stdlib.read_all(stdlib.open(path));
+                    stdlib.print(content + '\n');
                 } catch (e) {
-                    cons.write_line(e)
+                    stdlib.print(e + '\n');
                 }
             },
-            'mkdir': function (args, cons) {
+            'mkdir': function (args, stdlib) {
                 let path = args[0];
                 if (path === undefined) {
-                    cons.write_line('missing argument: path');
+                    stdlib.print('missing argument: path\n');
                     return;
                 }
                 path = resolve_path(dir, path);
@@ -394,7 +308,7 @@ class Terminal {
                 let child = path.substring(path.lastIndexOf('/') + 1);
                 let node = find_node(parent);
                 if (node === undefined || node.type !== 'd') {
-                    cons.write_line('not a directory: ' + path);
+                    stdlib.print('not a directory: ' + path + '\n');
                     return;
                 }
                 node.nodes[child] = {
@@ -482,33 +396,99 @@ class Terminal {
             return parts;
         }
 
-        let _cons = {
-            write_line: str => {
-                history.write_line(str);
+        let stdlib = {
+            STDOUT: stdout,
+            clear: function () {
+                handles.lookup(this.STDOUT).content = '';
             },
-            write: str => {
-                history.write(str);
+            cursor_left: step => {
+                cursor.move_left(step);
             },
-            clear: () => {
-                history.clear();
+            cursor_right: step => {
+                cursor.move_right(step);
             },
-            cursor: {
-                move_left: step => {
-                    cursor.move_left(step);
-                },
-                move_right: step => {
-                    cursor.move_right(step);
-                },
-                reset: () => {
-                    cursor.reset();
-                }
+            cursor_reset: () => {
+                cursor.reset();
             },
             exec: (name, args) => {
                 let prog = programs[name];
                 if (prog === undefined) {
                     throw 'invalid command: ' + name;
                 }
-                prog(args, _cons, fs);
+                prog(args, stdlib, fs);
+            },
+            open: (path, create) => {
+                path = resolve_path(dir, path);
+                let parent = path.substring(0, path.lastIndexOf('/'));
+                let child = path.substring(path.lastIndexOf('/') + 1);
+                let parent_node = find_node(parent);
+                if (parent_node === undefined || parent_node.type !== 'd') {
+                    throw 'not a directory: ' + path;
+                }
+                if (parent_node.nodes[child] === undefined && create) {
+                    parent_node.nodes[child] = {
+                        type: 'f',
+                        content: ''
+                    };
+                }
+                const node = parent_node.nodes[child];
+                if (node === undefined || node.type !== 'f') {
+                    throw 'not a file: ' + path;
+                }
+                const hnd = handles.acquire(node);
+                if (current_process !== null) {
+                    handles.lookup(current_process).open_files.push(hnd);
+                }
+                return hnd;
+            },
+            print: function (str) {
+                const node = handles.lookup(this.STDOUT);
+                node.content += str;
+            },
+            fprint: (handle, str) => {
+                const node = handles.lookup(handle);
+                node.content += str;
+            },
+            read_all: (handle) => {
+                const node = handles.lookup(handle);
+                return node.content;
+            },
+            close: (handle) => {
+                handles.close(handle);
+                const proc = handles.lookup(current_process);
+                const hnd = proc.open_files.indexOf(handle);
+                if (hnd > -1) {
+                    delete proc.open_files[hnd];
+                }
+            },
+            getpid: () => {
+                return current_process;
+            },
+            is_directory: (path) => {
+                if (path === undefined) {
+                    throw 'missing argument: path';
+                }
+                let node = find_node(path);
+                return !(node === undefined || node.type !== 'd');
+            },
+            make_dir: (path) => {
+                if (path === undefined) {
+                    throw 'missing argument: path';
+                }
+                path = resolve_path(dir, path);
+                let parent = path.substring(0, path.lastIndexOf('/'));
+                let child = path.substring(path.lastIndexOf('/') + 1);
+                let parent_node = find_node(parent);
+                if (parent_node === undefined || parent_node.type !== 'd') {
+                    throw 'not a directory: ' + path;
+                }
+                if (parent_node.nodes[child] !== undefined) {
+                    throw path + ' already exists';
+                }
+                parent_node.nodes[child] = {
+                    type: 'd',
+                    nodes: {}
+                };
             }
         };
 
@@ -520,7 +500,7 @@ class Terminal {
             switch (e.key) {
                 case 'Enter':
                     let command = text.substring(prefix_length);
-                    history.write_line(text);
+                    stdlib.print(text + '\n');
                     if (command.length === 0) {
                         break;
                     }
@@ -531,20 +511,20 @@ class Terminal {
                             open_files: []
                         };
                         current_process = handles.acquire(process);
-                        programs[command_parts[0]](command_parts.slice(1), _cons, fs);
+                        programs[command_parts[0]](command_parts.slice(1), stdlib);
                         for (let i = 0; i < process.open_files.length; i++) {
                             handles.close(process.open_files[i]);
                         }
                         handles.close(current_process);
                         current_process = null;
                     } else {
-                        history.write_line('command not found: ' + command_parts[0]);
+                        stdlib.print('command not found: ' + command_parts[0] + '\n');
                     }
                     text = prefix();
                     cmdpos = 0;
                     break;
                 case 'Backspace':
-                    cursor.move_left();
+                    stdlib.cursor_left();
                     if (cursor.pos < prefix_length) {
                         cursor.pos = prefix_length;
                     }
@@ -575,7 +555,7 @@ class Terminal {
                     break;
                 case 'ArrowLeft':
                     if (!e.metaKey) {
-                        cursor.move_left();
+                        stdlib.cursor_left();
                         if (cursor.pos < prefix_length) {
                             cursor.pos = prefix_length;
                         }
@@ -585,7 +565,7 @@ class Terminal {
                     break;
                 case 'ArrowRight':
                     if (!e.metaKey) {
-                        cursor.move_right();
+                        stdlib.cursor_right();
                         if (cursor.pos > text.length) {
                             cursor.pos = text.length;
                         }
@@ -599,7 +579,7 @@ class Terminal {
                 default:
                     scroll_point = 0;
                     text = text.substring(0, cursor.pos) + e.key + text.substring(cursor.pos);
-                    cursor.move_right();
+                    stdlib.cursor_right();
                     if (cursor.pos > text.length) {
                         cursor.pos = text.length;
                     }
@@ -658,7 +638,7 @@ class Terminal {
             }
         });
 
-        this.on_load(_cons, fs);
+        this.on_load(stdlib);
 
         let main_loop = setInterval((function (that) {
             return () => {
@@ -676,16 +656,17 @@ class Terminal {
                 let column_count = 0;
                 let lines = [''];
                 let max_lines = Math.floor(canvas.height / line_height);
-                for (let i = 0; i < history.data.length; i++) {
-                    if (history.data[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
+                let history = handles.lookup(stdout).content;
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i] === '\n' || Math.ceil(ctx.measureText(lines[row_count]).width) + 30 >= canvas.width) {
                         lines.push('');
                         row_count++;
                         column_count = 0;
                     }
-                    if (history.data[i] === '\n') {
+                    if (history[i] === '\n') {
                         continue;
                     }
-                    lines[row_count] += history.data[i];
+                    lines[row_count] += history[i];
                 }
                 let operation = text.substring(0, cursor.pos) + cursor.text() + text.substring(cursor.pos + 1);
                 for (let i = 0; i < operation.length; i++) {
